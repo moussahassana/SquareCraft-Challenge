@@ -26,7 +26,7 @@ The goal is to score points by forming squares of four aligned points on the gri
 ### Example
 In the image below, the red player has formed a square by placing points at specific intersections, scoring 1 point:
 
-![Example of SquareCraft-Challenge](images/square_example.png)
+![Example of SquareCraft-Challenge](images/square_example.jpg)
 
 
 ### Why Play SquareCraft Challenge?
