@@ -1,0 +1,237 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>SquareCraft-Challenge</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <style>
+    #grid {
+      position: relative;
+      width: 400px;
+      height: 400px;
+      background-color: white;
+      border: 1px solid #ccc;
+    }
+    .grid-line {
+      position: absolute;
+      background-color: #ccc;
+    }
+    .grid-line.vertical {
+      width: 1px;
+      height: 100%;
+    }
+    .grid-line.horizontal {
+      height: 1px;
+      width: 100%;
+    }
+    .dot {
+      width: 10px;
+      height: 10px;
+      border-radius: 50%;
+      position: absolute;
+      transform: translate(-50%, -50%);
+    }
+    .red { background-color: red; }
+    .blue { background-color: blue; }
+    .highlight {
+      box-shadow: 0 0 10px 3px yellow;
+    }
+    .square-box {
+      position: absolute;
+      border: 2px solid black;
+      width: 40px;
+      height: 40px;
+      pointer-events: none;
+    }
+    .score-label {
+      position: absolute;
+      font-weight: bold;
+      font-size: 14px;
+      transform: translate(-50%, -50%);
+      pointer-events: none;
+    }
+    .score-line {
+      position: absolute;
+      height: 2px;
+      transform-origin: left center;
+      transform: scaleX(0);
+      transition: transform 0.4s ease-out;
+    }
+  </style>
+</head>
+<body class="flex flex-col items-center p-6">
+  <h1 class="text-2xl font-bold mb-4">🎯 SquareCraft-Challenge</h1>
+  <div id="grid"></div>
+  <p id="turnIndicator" class="mt-4 text-lg">Current Turn: <span class="font-bold text-red-500">Red</span></p>
+  <p id="scoreBoard" class="mt-2 text-lg">Red: <span id="redScore">0</span> | Blue: <span id="blueScore">0</span></p>
+  <p id="gridLength" class="mt-1 text-sm text-gray-500">Grid: 10 × 10</p>
+  <p id="gameOverMessage" class="mt-4 text-xl font-semibold text-red-600 hidden"></p>
+  <button id="restartBtn" class="mt-2 px-4 py-2 bg-blue-500 text-white rounded hidden">Restart Game</button>
+
+  <script>
+    const grid = document.getElementById('grid');
+    const turnIndicator = document.getElementById('turnIndicator');
+    const redScoreDisplay = document.getElementById('redScore');
+    const blueScoreDisplay = document.getElementById('blueScore');
+    const message = document.getElementById('gameOverMessage');
+    const restartBtn = document.getElementById('restartBtn');
+
+    const size = 10;
+    const spacing = 40;
+    let currentPlayer = 'red';
+    let dots = new Map();
+    let scores = { red: 0, blue: 0 };
+    let scoredSquares = new Set();
+    let lastDot = null;
+
+    function key(x, y) {
+      return `${x},${y}`;
+    }
+
+    function drawGridLines() {
+      for (let i = 0; i <= size; i++) {
+        const hLine = document.createElement('div');
+        hLine.classList.add('grid-line', 'horizontal');
+        hLine.style.top = `${i * spacing}px`;
+        grid.appendChild(hLine);
+
+        const vLine = document.createElement('div');
+        vLine.classList.add('grid-line', 'vertical');
+        vLine.style.left = `${i * spacing}px`;
+        grid.appendChild(vLine);
+      }
+    }
+
+    drawGridLines();
+
+    function drawAnimatedLine(x1, y1, x2, y2, color) {
+      const line = document.createElement('div');
+      line.className = 'score-line';
+      line.style.backgroundColor = color;
+
+      const angle = Math.atan2(y2 - y1, x2 - x1) * (180 / Math.PI);
+      const length = Math.sqrt((x2 - x1) ** 2 + (y2 - y1) ** 2);
+
+      line.style.left = `${x1}px`;
+      line.style.top = `${y1}px`;
+      line.style.width = `${length}px`;
+      line.style.transform = `rotate(${angle}deg) scaleX(0)`;
+
+      grid.appendChild(line);
+
+      requestAnimationFrame(() => {
+        line.style.transform = `rotate(${angle}deg) scaleX(1)`;
+      });
+    }
+
+    function checkSquare(x, y, player) {
+      const color = player;
+      const offsets = [
+        [0, 0], [-1, 0], [0, -1], [-1, -1]
+      ];
+
+      for (const [dx, dy] of offsets) {
+        const ax = x + dx, ay = y + dy;
+        const bx = ax + 1, by = ay;
+        const cx = ax, cy = ay + 1;
+        const dx2 = ax + 1, dy2 = ay + 1;
+        const squareKey = `${ax},${ay}`;
+
+        if (
+          ax >= 0 && ay >= 0 && bx <= size && dy2 <= size &&
+          dots.get(key(ax, ay)) === player &&
+          dots.get(key(bx, by)) === player &&
+          dots.get(key(cx, cy)) === player &&
+          dots.get(key(dx2, dy2)) === player &&
+          !scoredSquares.has(squareKey)
+        ) {
+          scoredSquares.add(squareKey);
+          scores[player]++;
+          updateScores();
+
+          const box = document.createElement('div');
+          box.className = 'square-box';
+          box.style.left = `${ax * spacing}px`;
+          box.style.top = `${ay * spacing}px`;
+          box.style.borderColor = color;
+          grid.appendChild(box);
+
+          const label = document.createElement('div');
+          label.className = 'score-label';
+          label.textContent = scores[player];
+          label.style.left = `${(ax + 0.5) * spacing}px`;
+          label.style.top = `${(ay + 0.5) * spacing}px`;
+          label.style.color = color;
+          grid.appendChild(label);
+
+          drawAnimatedLine(ax * spacing, ay * spacing, bx * spacing, by * spacing, color);
+          drawAnimatedLine(bx * spacing, by * spacing, dx2 * spacing, dy2 * spacing, color);
+          drawAnimatedLine(dx2 * spacing, dy2 * spacing, cx * spacing, cy * spacing, color);
+          drawAnimatedLine(cx * spacing, cy * spacing, ax * spacing, ay * spacing, color);
+        }
+      }
+    }
+
+    function updateScores() {
+      redScoreDisplay.textContent = scores.red;
+      blueScoreDisplay.textContent = scores.blue;
+    }
+
+    function checkGameOver() {
+      if (dots.size >= (size + 1) * (size + 1)) {
+        let winner;
+        if (scores.red > scores.blue) winner = 'Red wins!';
+        else if (scores.blue > scores.red) winner = 'Blue wins!';
+        else winner = "It's a tie!";
+        message.textContent = '🎮 Game Over: ' + winner;
+        message.classList.remove('hidden');
+        restartBtn.classList.remove('hidden');
+        grid.style.pointerEvents = 'none';
+      }
+    }
+
+    restartBtn.addEventListener('click', () => {
+      grid.innerHTML = '';
+      dots = new Map();
+      scores = { red: 0, blue: 0 };
+      scoredSquares = new Set();
+      message.classList.add('hidden');
+      restartBtn.classList.add('hidden');
+      grid.style.pointerEvents = 'auto';
+      redScoreDisplay.textContent = '0';
+      blueScoreDisplay.textContent = '0';
+      currentPlayer = 'red';
+      lastDot = null;
+      turnIndicator.innerHTML = 'Current Turn: <span class="font-bold text-red-500">Red</span>';
+      drawGridLines();
+    });
+
+    grid.addEventListener('click', (e) => {
+      const rect = grid.getBoundingClientRect();
+      const x = Math.round((e.clientX - rect.left) / spacing);
+      const y = Math.round((e.clientY - rect.top) / spacing);
+      if (x < 0 || x > size || y < 0 || y > size) return;
+      const k = key(x, y);
+      if (dots.has(k)) return;
+
+      if (lastDot) lastDot.classList.remove('highlight');
+
+      const dot = document.createElement('div');
+      dot.classList.add('dot', currentPlayer, 'highlight');
+      dot.style.left = `${x * spacing}px`;
+      dot.style.top = `${y * spacing}px`;
+      grid.appendChild(dot);
+      lastDot = dot;
+
+      dots.set(k, currentPlayer);
+
+      checkSquare(x, y, currentPlayer);
+      checkGameOver();
+
+      currentPlayer = currentPlayer === 'red' ? 'blue' : 'red';
+      turnIndicator.innerHTML = `Current Turn: <span class="font-bold text-${currentPlayer}-500">${currentPlayer.charAt(0).toUpperCase() + currentPlayer.slice(1)}</span>`;
+    });
+  </script>
+</body>
+</html>
