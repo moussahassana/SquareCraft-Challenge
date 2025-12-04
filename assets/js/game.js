@@ -12,6 +12,7 @@ let dots = new Map();
 let scores = { red: 0, blue: 0 };
 let scoredSquares = new Set();
 let lastDot = null;
+let ghostDot = null;
 
 function key(x, y) {
   return `${x},${y}`;
@@ -149,7 +150,11 @@ grid.addEventListener('click', (e) => {
   dot.classList.add('dot', currentPlayer, 'highlight');
   dot.style.left = `${x * spacing}px`;
   dot.style.top = `${y * spacing}px`;
+  dot.style.transform = 'translate(-50%, -50%) scale(0.85)';
   grid.appendChild(dot);
+  requestAnimationFrame(() => {
+    dot.style.transform = 'translate(-50%, -50%) scale(1)';
+  });
   lastDot = dot;
 
   dots.set(k, currentPlayer);
@@ -159,4 +164,43 @@ grid.addEventListener('click', (e) => {
 
   currentPlayer = currentPlayer === 'red' ? 'blue' : 'red';
   turnIndicator.innerHTML = `Current Turn: <span class="font-bold text-${currentPlayer}-500">${currentPlayer.charAt(0).toUpperCase() + currentPlayer.slice(1)}</span>`;
+});
+
+function ensureGhostDot() {
+  if (!ghostDot) {
+    ghostDot = document.createElement('div');
+    ghostDot.className = 'ghost-dot';
+    ghostDot.style.display = 'none';
+    grid.appendChild(ghostDot);
+  }
+}
+
+function updateGhost(clientX, clientY) {
+  ensureGhostDot();
+  const rect = grid.getBoundingClientRect();
+  const x = Math.round((clientX - rect.left) / spacing);
+  const y = Math.round((clientY - rect.top) / spacing);
+  if (x < 0 || x > size || y < 0 || y > size) {
+    ghostDot.style.display = 'none';
+    return;
+  }
+  const k = key(x, y);
+  ghostDot.style.display = 'block';
+  ghostDot.style.left = `${x * spacing}px`;
+  ghostDot.style.top = `${y * spacing}px`;
+  ghostDot.style.borderColor = currentPlayer;
+  if (dots.has(k)) {
+    ghostDot.classList.add('invalid');
+  } else {
+    ghostDot.classList.remove('invalid');
+  }
+}
+
+grid.addEventListener('mousemove', (e) => {
+  updateGhost(e.clientX, e.clientY);
+});
+
+grid.addEventListener('mouseleave', () => {
+  ensureGhostDot();
+  ghostDot.style.display = 'none';
 });
