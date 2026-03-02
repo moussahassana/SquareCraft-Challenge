@@ -1,0 +1,5 @@
+[33m61eb6d6[m[33m ([m[1;36mHEAD[m[33m -> [m[1;32mmaster[m[33m, [m[1;31morigin/master[m[33m, [m[1;31morigin/HEAD[m[33m)[m HEAD@{0}: pull: Fast-forward
+[33m867c1cb[m HEAD@{1}: pull --tags origin master: Merge made by the 'ort' strategy.
+[33md8c7184[m HEAD@{2}: commit: feat(game): add ghost dot preview and dot animation
+[33m1e02f8a[m HEAD@{3}: commit: refactor: move css and js to separate files for better organization
+[33m2fc34e2[m HEAD@{4}: clone: from https://github.com/moussahassana/SquareCraft-Challenge.git
