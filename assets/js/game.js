@@ -40,8 +40,8 @@ function playSound(soundName) {
 
 function calculateSpacing() {
   if (!grid) return 40;
-  const gridSize = grid.offsetWidth || 500;
-  return gridSize / (size + 1);
+  const gridSize = grid.clientWidth || 400;
+  return gridSize / size;
 }
 
 function startGame() {
