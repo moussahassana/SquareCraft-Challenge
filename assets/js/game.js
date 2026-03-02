@@ -1,13 +1,18 @@
 const grid = document.getElementById('grid');
 const turnIndicator = document.getElementById('turnIndicator');
-const redScoreDisplay = document.getElementById('redScore');
-const blueScoreDisplay = document.getElementById('blueScore');
+const scoreBoard = document.getElementById('scoreBoard');
 const message = document.getElementById('gameOverMessage');
 const restartBtn = document.getElementById('restartBtn');
+const setupModal = document.getElementById('setupModal');
+const gameContainer = document.getElementById('gameContainer');
+const startBtn = document.getElementById('startBtn');
+const player1Input = document.getElementById('player1Input');
+const player2Input = document.getElementById('player2Input');
 
 const size = 10;
-const spacing = 40;
+let spacing = 40;
 let currentPlayer = 'red';
+let playerNames = { red: 'Player 1', blue: 'Player 2' };
 let dots = new Map();
 let scores = { red: 0, blue: 0 };
 let scoredSquares = new Set();
@@ -18,7 +23,14 @@ function key(x, y) {
   return `${x},${y}`;
 }
 
+function calculateSpacing() {
+  // If grid has a fixed width in CSS, use it. Otherwise calculate.
+  const gridWidth = grid.clientWidth || 400;
+  return gridWidth / size;
+}
+
 function drawGridLines() {
+  grid.innerHTML = '';
   for (let i = 0; i <= size; i++) {
     const hLine = document.createElement('div');
     hLine.classList.add('grid-line', 'horizontal');
@@ -32,7 +44,34 @@ function drawGridLines() {
   }
 }
 
-drawGridLines();
+function startGame() {
+  const p1 = player1Input.value.trim() || 'Player 1';
+  const p2 = player2Input.value.trim() || 'Player 2';
+  playerNames.red = p1;
+  playerNames.blue = p2;
+
+  setupModal.classList.add('hidden');
+  gameContainer.classList.remove('hidden');
+
+  // Force a reflow to ensure the container is visible and has dimensions
+  void gameContainer.offsetHeight;
+
+  // Ensure DOM has updated before calculating spacing and drawing
+  requestAnimationFrame(() => {
+    spacing = calculateSpacing();
+    resetGameState();
+  });
+}
+
+startBtn.addEventListener('click', startGame);
+
+player1Input.addEventListener('keypress', (e) => {
+  if (e.key === 'Enter') player2Input.focus();
+});
+
+player2Input.addEventListener('keypress', (e) => {
+  if (e.key === 'Enter') startGame();
+});
 
 function drawAnimatedLine(x1, y1, x2, y2, color) {
   const line = document.createElement('div');
@@ -55,7 +94,7 @@ function drawAnimatedLine(x1, y1, x2, y2, color) {
 }
 
 function checkSquare(x, y, player) {
-  const color = player;
+  const color = player === 'red' ? 'red' : 'blue';
   const offsets = [
     [0, 0], [-1, 0], [0, -1], [-1, -1]
   ];
@@ -83,6 +122,8 @@ function checkSquare(x, y, player) {
       box.className = 'square-box';
       box.style.left = `${ax * spacing}px`;
       box.style.top = `${ay * spacing}px`;
+      box.style.width = `${spacing}px`;
+      box.style.height = `${spacing}px`;
       box.style.borderColor = color;
       grid.appendChild(box);
 
@@ -103,15 +144,19 @@ function checkSquare(x, y, player) {
 }
 
 function updateScores() {
-  redScoreDisplay.textContent = scores.red;
-  blueScoreDisplay.textContent = scores.blue;
+  scoreBoard.innerHTML = `${playerNames.red}: <span class="font-bold text-red-500">${scores.red}</span> | ${playerNames.blue}: <span class="font-bold text-blue-500">${scores.blue}</span>`;
+}
+
+function updateTurnIndicator() {
+  const colorClass = currentPlayer === 'red' ? 'text-red-500' : 'text-blue-500';
+  turnIndicator.innerHTML = `Current Turn: <span class="font-bold ${colorClass}">${playerNames[currentPlayer]}</span>`;
 }
 
 function checkGameOver() {
   if (dots.size >= (size + 1) * (size + 1)) {
     let winner;
-    if (scores.red > scores.blue) winner = 'Red wins!';
-    else if (scores.blue > scores.red) winner = 'Blue wins!';
+    if (scores.red > scores.blue) winner = `${playerNames.red} wins!`;
+    else if (scores.blue > scores.red) winner = `${playerNames.blue} wins!`;
     else winner = "It's a tie!";
     message.textContent = '🎮 Game Over: ' + winner;
     message.classList.remove('hidden');
@@ -120,7 +165,7 @@ function checkGameOver() {
   }
 }
 
-restartBtn.addEventListener('click', () => {
+function resetGameState() {
   grid.innerHTML = '';
   dots = new Map();
   scores = { red: 0, blue: 0 };
@@ -128,13 +173,14 @@ restartBtn.addEventListener('click', () => {
   message.classList.add('hidden');
   restartBtn.classList.add('hidden');
   grid.style.pointerEvents = 'auto';
-  redScoreDisplay.textContent = '0';
-  blueScoreDisplay.textContent = '0';
   currentPlayer = 'red';
   lastDot = null;
-  turnIndicator.innerHTML = 'Current Turn: <span class="font-bold text-red-500">Red</span>';
   drawGridLines();
-});
+  updateScores();
+  updateTurnIndicator();
+}
+
+restartBtn.addEventListener('click', resetGameState);
 
 grid.addEventListener('click', (e) => {
   const rect = grid.getBoundingClientRect();
@@ -163,7 +209,7 @@ grid.addEventListener('click', (e) => {
   checkGameOver();
 
   currentPlayer = currentPlayer === 'red' ? 'blue' : 'red';
-  turnIndicator.innerHTML = `Current Turn: <span class="font-bold text-${currentPlayer}-500">${currentPlayer.charAt(0).toUpperCase() + currentPlayer.slice(1)}</span>`;
+  updateTurnIndicator();
 });
 
 function ensureGhostDot() {
@@ -188,7 +234,7 @@ function updateGhost(clientX, clientY) {
   ghostDot.style.display = 'block';
   ghostDot.style.left = `${x * spacing}px`;
   ghostDot.style.top = `${y * spacing}px`;
-  ghostDot.style.borderColor = currentPlayer;
+  ghostDot.style.borderColor = currentPlayer === 'red' ? 'red' : 'blue';
   if (dots.has(k)) {
     ghostDot.classList.add('invalid');
   } else {
@@ -201,6 +247,5 @@ grid.addEventListener('mousemove', (e) => {
 });
 
 grid.addEventListener('mouseleave', () => {
-  ensureGhostDot();
-  ghostDot.style.display = 'none';
+  if (ghostDot) ghostDot.style.display = 'none';
 });
