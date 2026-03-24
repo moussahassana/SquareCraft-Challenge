@@ -39,13 +39,7 @@
   box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
 }
 
-.dot.coral {
-  background: linear-gradient(135deg, #ff6b4a 0%, #ff5233 100%);
-}
 
-.dot.azure {
-  background: linear-gradient(135deg, #3b82f6 0%, #2563eb 100%);
-}
 
 .highlight {
   box-shadow: 0 0 12px 4px #fbbf24, 0 2px 4px rgba(0, 0, 0, 0.1);
@@ -62,20 +56,7 @@
   pointer-events: none;
 }
 
-.ghost-dot.coral {
-  border-color: #ff6b4a;
-  background-color: rgba(255, 107, 74, 0.1);
-}
 
-.ghost-dot.azure {
-  border-color: #3b82f6;
-  background-color: rgba(59, 130, 246, 0.1);
-}
-
-.ghost-dot.invalid {
-  border-color: #ef4444;
-  background-color: rgba(239, 68, 68, 0.15);
-}
 
 .square-box {
   position: absolute;

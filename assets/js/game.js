@@ -8,16 +8,28 @@ const startBtn = document.getElementById('startBtn');
 const player1Input = document.getElementById('player1Input');
 const player2Input = document.getElementById('player2Input');
 const scoreBoard = document.getElementById('scoreBoard');
+const gridSizeSelect = document.getElementById('gridSizeSelect');
+const player1ColorInput = document.getElementById('player1Color');
+const player2ColorInput = document.getElementById('player2Color');
+const gridLength = document.getElementById('gridLength');
 
-const size = 10;
+let size = 15;
 let spacing = 40;
-let currentPlayer = 'coral';
-let playerNames = { coral: 'Player 1', azure: 'Player 2' };
+let currentPlayer = 'player1';
+let playerNames = { player1: 'Player 1', player2: 'Player 2' };
+let playerColors = { player1: '#ff6b4a', player2: '#3b82f6' };
 let dots = new Map();
-let scores = { coral: 0, azure: 0 };
+let scores = { player1: 0, player2: 0 };
 let scoredSquares = new Set();
 let lastDot = null;
 let ghostDot = null;
+
+function hexToRgba(hex, alpha) {
+  const r = parseInt(hex.substring(1, 3), 16);
+  const g = parseInt(hex.substring(3, 5), 16);
+  const b = parseInt(hex.substring(5, 7), 16);
+  return `rgba(${r}, ${g}, ${b}, ${alpha})`;
+}
 
 const sounds = {
   click: null,
@@ -48,8 +60,14 @@ function startGame() {
   const player1Name = (player1Input.value.trim() || 'Player 1').substring(0, 20);
   const player2Name = (player2Input.value.trim() || 'Player 2').substring(0, 20);
 
-  playerNames.coral = player1Name;
-  playerNames.azure = player2Name;
+  playerNames.player1 = player1Name;
+  playerNames.player2 = player2Name;
+  
+  playerColors.player1 = player1ColorInput.value;
+  playerColors.player2 = player2ColorInput.value;
+  
+  size = parseInt(gridSizeSelect.value, 10);
+  gridLength.textContent = `Grid: ${size} × ${size}`;
 
   setupModal.classList.add('hidden');
   gameContainer.classList.remove('hidden');
@@ -87,7 +105,7 @@ function key(x, y) {
 }
 
 function getColorStyle(player) {
-  return player === 'coral' ? '#ff6b4a' : '#3b82f6';
+  return playerColors[player];
 }
 
 function drawGridLines() {
@@ -112,7 +130,8 @@ function redrawGrid() {
   for (const [k, player] of dots.entries()) {
     const [x, y] = k.split(',').map(Number);
     const dot = document.createElement('div');
-    dot.classList.add('dot', player);
+    dot.classList.add('dot');
+    dot.style.backgroundColor = playerColors[player];
     dot.style.left = `${x * spacing}px`;
     dot.style.top = `${y * spacing}px`;
     grid.appendChild(dot);
@@ -220,7 +239,7 @@ function checkSquare(x, y, player) {
 }
 
 function updateScores() {
-  scoreBoard.innerHTML = `${playerNames.coral}: <span style="color: #ff6b4a; font-weight: bold;">${scores.coral}</span> | ${playerNames.azure}: <span style="color: #3b82f6; font-weight: bold;">${scores.azure}</span>`;
+  scoreBoard.innerHTML = `${playerNames.player1}: <span style="color: ${playerColors.player1}; font-weight: bold;">${scores.player1}</span> | ${playerNames.player2}: <span style="color: ${playerColors.player2}; font-weight: bold;">${scores.player2}</span>`;
 }
 
 function updateTurnIndicator() {
@@ -231,8 +250,8 @@ function updateTurnIndicator() {
 function checkGameOver() {
   if (dots.size >= (size + 1) * (size + 1)) {
     let winner;
-    if (scores.coral > scores.azure) winner = `${playerNames.coral} wins!`;
-    else if (scores.azure > scores.coral) winner = `${playerNames.azure} wins!`;
+    if (scores.player1 > scores.player2) winner = `${playerNames.player1} wins!`;
+    else if (scores.player2 > scores.player1) winner = `${playerNames.player2} wins!`;
     else winner = "It's a tie!";
     message.textContent = '🎮 Game Over: ' + winner;
     message.classList.remove('hidden');
@@ -250,12 +269,12 @@ function resetGame() {
 function resetGameState() {
   grid.innerHTML = '';
   dots = new Map();
-  scores = { coral: 0, azure: 0 };
+  scores = { player1: 0, player2: 0 };
   scoredSquares = new Set();
   message.classList.add('hidden');
   restartBtn.classList.add('hidden');
   grid.style.pointerEvents = 'auto';
-  currentPlayer = 'coral';
+  currentPlayer = 'player1';
   lastDot = null;
   resetGame();
 }
@@ -273,7 +292,8 @@ grid.addEventListener('click', (e) => {
   if (lastDot) lastDot.classList.remove('highlight');
 
   const dot = document.createElement('div');
-  dot.classList.add('dot', currentPlayer, 'highlight');
+  dot.classList.add('dot', 'highlight');
+  dot.style.backgroundColor = playerColors[currentPlayer];
   dot.style.left = `${x * spacing}px`;
   dot.style.top = `${y * spacing}px`;
   dot.style.transform = 'translate(-50%, -50%) scale(0.85)';
@@ -289,7 +309,7 @@ grid.addEventListener('click', (e) => {
   checkSquare(x, y, currentPlayer);
   checkGameOver();
 
-  currentPlayer = currentPlayer === 'coral' ? 'azure' : 'coral';
+  currentPlayer = currentPlayer === 'player1' ? 'player2' : 'player1';
   updateTurnIndicator();
 });
 
@@ -315,11 +335,13 @@ function updateGhost(clientX, clientY) {
   ghostDot.style.display = 'block';
   ghostDot.style.left = `${x * spacing}px`;
   ghostDot.style.top = `${y * spacing}px`;
-  ghostDot.style.borderColor = getColorStyle(currentPlayer);
+  const color = getColorStyle(currentPlayer);
+  ghostDot.style.borderColor = color;
   if (dots.has(k)) {
-    ghostDot.classList.add('invalid');
+    ghostDot.style.backgroundColor = 'rgba(239, 68, 68, 0.15)';
+    ghostDot.style.borderColor = '#ef4444';
   } else {
-    ghostDot.classList.remove('invalid');
+    ghostDot.style.backgroundColor = hexToRgba(color, 0.1);
   }
 }
 
