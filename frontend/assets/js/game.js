@@ -2,15 +2,8 @@ const grid = document.getElementById('grid');
 const turnIndicator = document.getElementById('turnIndicator');
 const message = document.getElementById('gameOverMessage');
 const restartBtn = document.getElementById('restartBtn');
-const setupModal = document.getElementById('setupModal');
-const gameContainer = document.getElementById('gameContainer');
-const startBtn = document.getElementById('startBtn');
-const player1Input = document.getElementById('player1Input');
-const player2Input = document.getElementById('player2Input');
+const homeBtn = document.getElementById('homeBtn');
 const scoreBoard = document.getElementById('scoreBoard');
-const gridSizeSelect = document.getElementById('gridSizeSelect');
-const player1ColorInput = document.getElementById('player1Color');
-const player2ColorInput = document.getElementById('player2Color');
 const gridLength = document.getElementById('gridLength');
 
 let size = 15;
@@ -23,6 +16,8 @@ let scores = { player1: 0, player2: 0 };
 let scoredSquares = new Set();
 let lastDot = null;
 let ghostDot = null;
+let gameMode = 'pvp'; // 'pvp' or 'pva'
+let isAITurn = false;
 
 function hexToRgba(hex, alpha) {
   const r = parseInt(hex.substring(1, 3), 16);
@@ -56,49 +51,66 @@ function calculateSpacing() {
   return gridSize / size;
 }
 
-function startGame() {
-  const player1Name = (player1Input.value.trim() || 'Player 1').substring(0, 20);
-  const player2Name = (player2Input.value.trim() || 'Player 2').substring(0, 20);
+function initGame() {
+    const configStr = localStorage.getItem('squarecraft_config');
+    if (!configStr) {
+        window.location.href = 'index.html';
+        return;
+    }
 
-  playerNames.player1 = player1Name;
-  playerNames.player2 = player2Name;
-  
-  playerColors.player1 = player1ColorInput.value;
-  playerColors.player2 = player2ColorInput.value;
-  
-  size = parseInt(gridSizeSelect.value, 10);
-  gridLength.textContent = `Grid: ${size} × ${size}`;
+    const config = JSON.parse(configStr);
+    playerNames.player1 = config.player1Name;
+    playerNames.player2 = config.player2Name;
+    playerColors.player1 = config.player1Color;
+    playerColors.player2 = config.player2Color;
+    gameMode = config.gameMode;
+    size = config.size;
 
-  setupModal.classList.add('hidden');
-  gameContainer.classList.remove('hidden');
-
-  // Force a reflow to ensure the container is visible and has dimensions
-  void gameContainer.offsetHeight;
-
-  // Ensure DOM has updated before calculating spacing and drawing
-  requestAnimationFrame(() => {
+    gridLength.textContent = `Grid: ${size} × ${size}`;
     spacing = calculateSpacing();
     initSounds();
-    resetGame();
-    window.addEventListener('resize', () => {
-      const newSpacing = calculateSpacing();
-      if (newSpacing !== spacing) {
-        spacing = newSpacing;
+
+    // Check for saved game state
+    const savedStateStr = localStorage.getItem('squarecraft_state');
+    if (savedStateStr) {
+        const state = JSON.parse(savedStateStr);
+        dots = new Map(Object.entries(state.dots));
+        scores = state.scores;
+        scoredSquares = new Set(state.scoredSquares);
+        currentPlayer = state.currentPlayer;
+        
         redrawGrid();
-      }
+        updateScores();
+        updateTurnIndicator();
+        checkGameOver();
+
+        // If it was AI's turn when reloaded, resume AI move
+        if (gameMode === 'pva' && currentPlayer === 'player2') {
+            isAITurn = true;
+            setTimeout(makeAIMove, 500);
+        }
+    } else {
+        resetGame();
+    }
+    
+    window.addEventListener('resize', () => {
+        const newSpacing = calculateSpacing();
+        if (newSpacing !== spacing) {
+            spacing = newSpacing;
+            redrawGrid();
+        }
     });
-  });
 }
 
-startBtn.addEventListener('click', startGame);
-
-player1Input.addEventListener('keypress', (e) => {
-  if (e.key === 'Enter') player2Input.focus();
-});
-
-player2Input.addEventListener('keypress', (e) => {
-  if (e.key === 'Enter') startGame();
-});
+function saveGameState() {
+    const state = {
+        dots: Object.fromEntries(dots),
+        scores: scores,
+        scoredSquares: Array.from(scoredSquares),
+        currentPlayer: currentPlayer
+    };
+    localStorage.setItem('squarecraft_state', JSON.stringify(state));
+}
 
 function key(x, y) {
   return `${x},${y}`;
@@ -257,6 +269,7 @@ function checkGameOver() {
     message.classList.remove('hidden');
     restartBtn.classList.remove('hidden');
     grid.style.pointerEvents = 'none';
+    isAITurn = false;
   }
 }
 
@@ -271,6 +284,7 @@ function resetGameState() {
   dots = new Map();
   scores = { player1: 0, player2: 0 };
   scoredSquares = new Set();
+  localStorage.removeItem('squarecraft_state');
   message.classList.add('hidden');
   restartBtn.classList.add('hidden');
   grid.style.pointerEvents = 'auto';
@@ -279,13 +293,36 @@ function resetGameState() {
   resetGame();
 }
 
-restartBtn.addEventListener('click', resetGameState);
+restartBtn.addEventListener('click', (e) => {
+  e.preventDefault();
+  resetGameState();
+});
+
+homeBtn.addEventListener('click', (e) => {
+    e.preventDefault();
+    localStorage.removeItem('squarecraft_state');
+    window.location.href = 'index.html';
+});
 
 grid.addEventListener('click', (e) => {
+  if (isAITurn) return; // Prevent clicking during AI turn
+
   const rect = grid.getBoundingClientRect();
   const x = Math.round((e.clientX - rect.left) / spacing);
   const y = Math.round((e.clientY - rect.top) / spacing);
   if (x < 0 || x > size || y < 0 || y > size) return;
+  const k = key(x, y);
+  if (dots.has(k)) return;
+
+  placeDot(x, y);
+
+  if (gameMode === 'pva' && currentPlayer === 'player2') {
+    isAITurn = true;
+    setTimeout(makeAIMove, 500); // Add a small delay for better UX
+  }
+});
+
+function placeDot(x, y) {
   const k = key(x, y);
   if (dots.has(k)) return;
 
@@ -310,8 +347,42 @@ grid.addEventListener('click', (e) => {
   checkGameOver();
 
   currentPlayer = currentPlayer === 'player1' ? 'player2' : 'player1';
+  saveGameState();
   updateTurnIndicator();
-});
+}
+
+async function makeAIMove() {
+  if (!isAITurn) return;
+
+  const dotsObj = Object.fromEntries(dots);
+  console.log('Requesting AI move with dots:', dotsObj);
+
+  try {
+    const response = await fetch(`${CONFIG.API_URL}/move`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        dots: dotsObj,
+        current_player: 'player2',
+        size: size
+      })
+    });
+
+    if (response.ok) {
+      const move = await response.json();
+      console.log('AI response received:', move);
+      isAITurn = false;
+      placeDot(move.x, move.y);
+    } else {
+      const errorText = await response.text();
+      console.error('Failed to get AI move. Status:', response.status, 'Error:', errorText);
+      isAITurn = false;
+    }
+  } catch (error) {
+    console.error('Error connecting to AI backend:', error);
+    isAITurn = false;
+  }
+}
 
 function ensureGhostDot() {
   if (!ghostDot) {
@@ -352,3 +423,6 @@ grid.addEventListener('mousemove', (e) => {
 grid.addEventListener('mouseleave', () => {
   if (ghostDot) ghostDot.style.display = 'none';
 });
+
+// Initialize on page load
+initGame();

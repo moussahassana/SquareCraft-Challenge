@@ -1,0 +1,36 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>SquareCraft-Challenge - Game</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link rel="stylesheet" href="assets/css/styles.css">
+</head>
+<body class="flex flex-col items-center justify-center min-h-screen bg-gradient-to-br from-slate-900 to-slate-800 p-4">
+  <div id="gameContainer" class="flex flex-col items-center">
+    <div class="mb-6 text-center">
+      <h1 class="text-4xl font-bold mb-2 text-white">SquareCraft-Challenge</h1>
+      <p class="text-slate-300 text-sm">Place dots to form squares</p>
+    </div>
+
+    <div class="bg-white rounded-lg shadow-2xl p-6 mb-6">
+      <div id="grid"></div>
+    </div>
+
+    <div class="w-full max-w-md text-center">
+      <p id="turnIndicator" class="text-lg font-semibold text-white mb-3"></p>
+      <p id="scoreBoard" class="text-lg text-slate-300 mb-2"></p>
+      <p id="gridLength" class="text-sm text-slate-400 mb-4">Grid: 15 × 15</p>
+      <p id="gameOverMessage" class="text-2xl font-bold mb-4 hidden"></p>
+      <div class="flex space-x-4 justify-center">
+        <button id="restartBtn" class="px-6 py-2 bg-gradient-to-r from-blue-500 to-blue-600 hover:from-blue-600 hover:to-blue-700 text-white rounded-lg font-semibold transition-all duration-200 transform hover:scale-105 hidden">Play Again</button>
+        <button id="homeBtn" class="px-6 py-2 bg-gradient-to-r from-slate-500 to-slate-600 hover:from-slate-600 hover:to-slate-700 text-white rounded-lg font-semibold transition-all duration-200 transform hover:scale-105">Main Menu</button>
+      </div>
+    </div>
+  </div>
+
+  <script src="assets/js/config.js"></script>
+  <script src="assets/js/game.js"></script>
+</body>
+</html>
